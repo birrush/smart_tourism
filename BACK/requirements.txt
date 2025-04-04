@@ -3,3 +3,4 @@ uvicorn
 httpx
 pydantic
 python-dotenv
+pydantic_settings
