@@ -1,8 +1,9 @@
 import httpx
 from app.core.config import settings
-from typing import Dict, Any
+from typing import Dict, Any, List
 import json
 import logging
+from app.models.schemas import ScenicSpot
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ class LLMService:
         调用大模型API生成旅游计划
 
         Args:
-            input_data: 包含位置和日期信息的字典
+            input_data: 包含位置和旅行天数信息的字典
 
         Returns:
             生成的旅游计划字典
@@ -70,31 +71,39 @@ class LLMService:
 
     def _build_travel_prompt(self, input_data: Dict[str, Any]) -> str:
         """构建旅游计划的提示词"""
-        location = input_data["center_location"]
-        location_str = f"{location['name'] or ''} ({location['latitude']}, {location['longitude']})"
+        city = input_data["city"]
+        center_name = input_data["center_name"]
+        travel_days = input_data["travel_days"]
+        travel_mode = input_data["travel_mode"]
 
-        start_date = input_data["start_date"].strftime("%Y-%m-%d")
-        end_date = input_data["end_date"].strftime("%Y-%m-%d")
-
-        preferences = "、".join(input_data.get("preferences", [])) if input_data.get("preferences") else "无特殊偏好"
+        # 处理已有的景点列表
+        scenic_spots_text = ""
+        if input_data.get("scenic_spots") and len(input_data["scenic_spots"]) > 0:
+            scenic_spots_text = "用户已选择的景点:\n"
+            for i, spot in enumerate(input_data["scenic_spots"], 1):
+                scenic_spots_text += f"{i}. {spot.name}, 地址: {spot.address}, 坐标: ({spot.latitude}, {spot.longitude})\n"
 
         prompt = f"""
         请为我生成一份详细的旅游计划:
 
-        中心位置: {location_str}
-        地址: {location.get('address', '未提供')}
-        开始日期: {start_date}
-        结束日期: {end_date}
-        偏好: {preferences}
-        出行方式: {input_data.get('travel_mode', '步行')}
+        城市: {city}
+        中心位置: {center_name}
+        旅行天数: {travel_days}天
+        出行方式: {travel_mode}
+        要参观的景点: {scenic_spots_text}
+
+        请根据以下要求制定一个合理的旅游行程:
+        1. 以中心位置为基础，规划{travel_days}天的行程
+        2. 考虑到用户的出行方式是{travel_mode}，规划合理的游览路线
+        3. 每天安排2-4个景点，考虑景点之间的距离和游览时间
+        4. 若用户已选择景点，请确保将这些景点合理地融入到行程中
 
         请提供以下内容:
         1. 旅游计划概述
         2. 每天的详细行程，包括:
-           - 推荐景点的名称、地址、坐标、描述和推荐游玩时长
-           - 景点之间的最佳路线
-           - 每天的用餐建议
-        3. 每个景点的简要介绍
+           推荐景点的名称、地址、大致坐标、描述和推荐游玩时长
+           景点之间的最佳游览顺序
+           每天的用餐建议
 
         请以JSON格式返回，格式如下:
         ```json
@@ -102,14 +111,14 @@ class LLMService:
         "overview": "旅游计划概述",
           "daily_plans": [
             {
-        "date": "YYYY-MM-DD",
-              "description": "当天概述",
+        "day": 1,
+              "description": "第一天概述",
               "poi_list": [
                 {
         "name": "景点名称",
                   "address": "景点地址",
-                  "latitude": 123.456,
-                  "longitude": 78.910,
+                  "latitude": 39.123456,
+                  "longitude": 116.123456,
                   "description": "景点描述",
                   "recommended_duration": "2小时"
                 }
@@ -118,7 +127,7 @@ class LLMService:
           ]
         }
         ```
-        请确保输出是有效的JSON格式。
+        请确保输出是有效的JSON格式，并且坐标信息尽量准确。
         """
 
         return prompt

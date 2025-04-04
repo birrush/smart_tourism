@@ -13,15 +13,18 @@ async def generate_travel_plan(
         travel_service: TravelService = Depends(),
         authenticated: bool = Depends(verify_wx_request)
 ):
-    """根据中心位置和计划时间生成旅游计划"""
+    """根据中心位置和计划天数生成旅游计划"""
     try:
+        # 将字符串类型的旅行天数转换为整数
+        travel_days = int(request.travelData.travelDays)
+
         # 调用旅游服务生成计划
         travel_plan = await travel_service.generate_plan(
-            center_location=request.center_location,
-            start_date=request.start_date,
-            end_date=request.end_date,
-            preferences=request.preferences,
-            travel_mode=request.travel_mode
+            city=request.city,
+            center_name=request.centerName,
+            scenic_spots=request.travelData.scenicSpots,
+            travel_days=travel_days,
+            travel_mode=request.travelData.travelMode
         )
 
         # 生成计划ID
@@ -30,9 +33,10 @@ async def generate_travel_plan(
         # 构建响应
         response = TravelPlanResponse(
             plan_id=plan_id,
-            center_location=request.center_location,
-            start_date=request.start_date,
-            end_date=request.end_date,
+            city=request.city,
+            center_name=request.centerName,
+            travel_days=travel_days,
+            travel_mode=request.travelData.travelMode,
             daily_plans=travel_plan.daily_plans,
             overview=travel_plan.overview
         )

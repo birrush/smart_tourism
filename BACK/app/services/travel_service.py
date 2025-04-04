@@ -1,8 +1,8 @@
 from app.services.llm_service import LLMService
-from app.models.schemas import LocationRequest, DailyPlan, PointOfInterest
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from app.models.schemas import ScenicSpot, DailyPlan, PointOfInterest
+from typing import List, Dict, Any
 import logging
+from datetime import date, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -23,20 +23,20 @@ class TravelService:
 
     async def generate_plan(
             self,
-            center_location: LocationRequest,
-            start_date: datetime,
-            end_date: datetime,
-            preferences: Optional[List[str]] = None,
-            travel_mode: Optional[str] = "walking"
+            city: str,
+            center_name: str,
+            scenic_spots: List[ScenicSpot],
+            travel_days: int,
+            travel_mode: str
     ) -> TravelPlan:
         """
         生成旅游计划
 
         Args:
-            center_location: 中心位置
-            start_date: 开始日期
-            end_date: 结束日期
-            preferences: 偏好列表
+            city: 城市名称
+            center_name: 中心位置名称
+            scenic_spots: 用户选择的景点列表
+            travel_days: 旅行天数
             travel_mode: 出行方式
 
         Returns:
@@ -45,10 +45,10 @@ class TravelService:
         try:
             # 准备输入数据
             input_data = {
-                "center_location": center_location.dict(),
-                "start_date": start_date,
-                "end_date": end_date,
-                "preferences": preferences or [],
+                "city": city,
+                "center_name": center_name,
+                "scenic_spots": [spot.dict() for spot in scenic_spots] if scenic_spots else [],
+                "travel_days": travel_days,
                 "travel_mode": travel_mode
             }
 
@@ -57,9 +57,13 @@ class TravelService:
 
             # 转换大模型输出为应用数据格式
             daily_plans = []
+
+            # 计算旅行的开始日期（今天开始）
+            start_date = date.today()
+
             for day_plan in llm_result["daily_plans"]:
-                # 转换日期字符串为datetime对象
-                date = datetime.strptime(day_plan["date"], "%Y-%m-%d")
+                # 计算当天日期
+                current_date = start_date + timedelta(days=day_plan["day"] - 1)
 
                 # 转换POI列表
                 poi_list = []
@@ -76,7 +80,8 @@ class TravelService:
 
                 # 创建日计划对象
                 daily_plan = DailyPlan(
-                    date=date,
+                    day=day_plan["day"],
+                    date=current_date,
                     poi_list=poi_list,
                     description=day_plan["description"]
                 )
