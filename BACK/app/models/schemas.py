@@ -33,9 +33,14 @@ class PointOfInterest(BaseModel):
 
 class DailyPlan(BaseModel):
     day: int  # 第几天
-    date: Optional[date] = None  # 可选日期
+    date: Optional[date] = None  # 可选日期，默认为None
     poi_list: List[PointOfInterest]
     description: str
+
+    # Pydantic v2 验证兼容性
+    model_config = {
+        "arbitrary_types_allowed": True
+    }
 
 
 class TravelPlanResponse(BaseModel):

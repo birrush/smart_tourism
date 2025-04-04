@@ -47,7 +47,7 @@ class TravelService:
             input_data = {
                 "city": city,
                 "center_name": center_name,
-                "scenic_spots": [spot.dict() for spot in scenic_spots] if scenic_spots else [],
+                "scenic_spots": [spot.model_dump() for spot in scenic_spots] if scenic_spots else [],  # 使用model_dump()替代dict()
                 "travel_days": travel_days,
                 "travel_mode": travel_mode
             }
@@ -58,13 +58,7 @@ class TravelService:
             # 转换大模型输出为应用数据格式
             daily_plans = []
 
-            # 计算旅行的开始日期（今天开始）
-            start_date = date.today()
-
             for day_plan in llm_result["daily_plans"]:
-                # 计算当天日期
-                current_date = start_date + timedelta(days=day_plan["day"] - 1)
-
                 # 转换POI列表
                 poi_list = []
                 for poi in day_plan["poi_list"]:
@@ -78,12 +72,12 @@ class TravelService:
                     )
                     poi_list.append(poi_obj)
 
-                # 创建日计划对象
+                # 创建日计划对象 - 不再设置date字段值
                 daily_plan = DailyPlan(
                     day=day_plan["day"],
-                    date=current_date,
                     poi_list=poi_list,
                     description=day_plan["description"]
+                    # 不再设置date字段，让它保持默认的None值
                 )
                 daily_plans.append(daily_plan)
 
