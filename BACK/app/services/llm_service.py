@@ -12,7 +12,7 @@ class LLMService:
     """大模型API调用服务"""
 
     def __init__(self):
-        self.api_key = "sk-aBFyO0zpkASUeiMieMoAbXxg54KUR3fjIPMJGhpbOCEn5PTe"  # 从配置中获取 API Key
+        self.api_key = "*******"  # 从配置中获取 API Key
         self.api_url = "https://api.moonshot.cn/v1"  # Kimi API的基础URL
         self.client = OpenAI(api_key=self.api_key, base_url=self.api_url)
 
